@@ -1,0 +1,36 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Workflows - FlowForge{% endblock %}
+
+{% block body %}
+<div class="min-h-screen bg-gray-100 py-8">
+    <div class="max-w-7xl mx-auto px-6 lg:px-8">
+        <div class="flex justify-between items-center mb-8">
+            <h1 class="text-3xl font-bold text-gray-800">Mes Workflows</h1>
+            <a href="{{ path('app_workflow_new') }}" class="bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700">
+                + Nouveau workflow
+            </a>
+        </div>
+
+        {% if workflows is empty %}
+            <div class="bg-white rounded-lg shadow p-8 text-center text-gray-500">
+                Aucun workflow pour le moment.
+            </div>
+        {% else %}
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {% for workflow in workflows %}
+                    <div class="bg-white rounded-lg shadow p-6 flex flex-col justify-between">
+                        <div class="flex-1">
+                            <h2 class="font-semibold text-gray-800 text-lg mb-2">{{ workflow.name }}</h2>
+                            <p class="text-sm text-gray-500">{{ workflow.description }}</p>
+                        </div>
+                        <div class="mt-4">
+                            <a href="{{ path('app_workflow_show', {id: workflow.id}) }}" class="inline-block bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 text-sm">Voir</a>
+                        </div>
+                    </div>
+                {% endfor %}
+            </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

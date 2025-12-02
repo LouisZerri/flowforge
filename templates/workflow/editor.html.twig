@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Éditeur - {{ workflow.name }} - FlowForge</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/jerosoler/Drawflow/dist/drawflow.min.css">
+    <style>
+        #drawflow {
+            width: 100%;
+            height: calc(100vh - 120px);
+            background: #f3f4f6;
+            background-image: radial-gradient(#d1d5db 1px, transparent 1px);
+            background-size: 20px 20px;
+        }
+        .drawflow .drawflow-node {
+            background: white;
+            border: 2px solid #6366f1;
+            border-radius: 8px;
+            padding: 15px;
+            min-width: 160px;
+        }
+        .drawflow .drawflow-node.selected {
+            border-color: #4f46e5;
+            box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.3);
+        }
+        .drawflow .drawflow-node .input, .drawflow .drawflow-node .output {
+            background: #6366f1;
+        }
+        .drawflow .connection .main-path {
+            stroke: #6366f1;
+            stroke-width: 3px;
+        }
+        .node-label {
+            font-weight: 600;
+            color: #1f2937;
+            text-align: center;
+        }
+        .node-name {
+            font-size: 12px;
+            color: #6b7280;
+            text-align: center;
+            margin-top: 4px;
+        }
+        .initial-node .drawflow-node {
+            border-color: #10b981;
+            background: #ecfdf5;
+        }
+    </style>
+</head>
+<body class="bg-gray-100">
+    <!-- Header -->
+    <div class="bg-white shadow px-6 py-3 flex justify-between items-center">
+        <div class="flex items-center gap-4">
+            <a href="{{ path('app_workflow_show', {id: workflow.id}) }}" class="text-indigo-600 hover:underline">← Retour</a>
+            <h1 class="text-xl font-bold text-gray-800">Éditeur : {{ workflow.name }}</h1>
+        </div>
+        <div class="flex gap-2">
+            <button id="addNode" class="bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 cursor-pointer">
+                + Ajouter une étape
+            </button>
+            <button id="saveWorkflow" class="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 cursor-pointer">
+                💾 Sauvegarder
+            </button>
+        </div>
+    </div>
+
+    <!-- Sidebar -->
+    <div class="fixed left-4 top-24 bg-white rounded-lg shadow p-4 z-10 w-64">
+        <h3 class="font-semibold text-gray-800 mb-3">Propriétés</h3>
+        <div id="nodeProperties" class="text-gray-500 text-sm">
+            Sélectionnez une étape pour modifier ses propriétés.
+        </div>
+        <div id="nodeForm" class="hidden space-y-3">
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Nom technique</label>
+                <input type="text" id="nodeName" class="w-full border border-gray-300 rounded px-3 py-2 text-sm">
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Label</label>
+                <input type="text" id="nodeLabel" class="w-full border border-gray-300 rounded px-3 py-2 text-sm">
+            </div>
+            <div>
+                <label class="flex items-center gap-2">
+                    <input type="checkbox" id="nodeInitial" class="rounded">
+                    <span class="text-sm text-gray-700">Étape initiale</span>
+                </label>
+            </div>
+            <button id="updateNode" class="w-full bg-indigo-600 text-white px-3 py-2 rounded text-sm hover:bg-indigo-700 cursor-pointer">
+                Mettre à jour
+            </button>
+            <button id="deleteNode" class="w-full bg-red-500 text-white px-3 py-2 rounded text-sm hover:bg-red-600 cursor-pointer">
+                Supprimer
+            </button>
+        </div>
+    </div>
+
+    <!-- Editor -->
+    <div id="drawflow"></div>
+
+    <script src="https://cdn.jsdelivr.net/gh/jerosoler/Drawflow/dist/drawflow.min.js"></script>
+    <script>
+        const container = document.getElementById('drawflow');
+        const editor = new Drawflow(container);
+        editor.reroute = true;
+        editor.start();
+
+        let nodeCounter = 0;
+        let selectedNodeId = null;
+        let initialNodeId = null;
+
+        // Charger les places existantes
+        const existingPlaces = {{ workflow.places|map(p => {id: p.id, name: p.name, label: p.label})|json_encode|raw }};
+        const existingTransitions = {{ workflow.transitions|map(t => {fromPlace: t.fromPlace.name, toPlace: t.toPlace.name, name: t.name, label: t.label})|json_encode|raw }};
+        const existingInitialPlace = "{{ workflow.initialPlace }}";
+
+        // Mapping des noms de places vers les IDs de nodes
+        const placeNameToNodeId = {};
+
+        // Ajouter les places existantes
+        let posX = 100;
+        let posY = 100;
+        existingPlaces.forEach((place, index) => {
+            const nodeId = addNodeToEditor(place.name, place.label, posX, posY);
+            placeNameToNodeId[place.name] = nodeId;
+            if (place.name === existingInitialPlace) {
+                initialNodeId = nodeId;
+            }
+            posX += 250;
+            if (posX > 800) {
+                posX = 100;
+                posY += 150;
+            }
+        });
+
+        // Ajouter les connexions existantes
+        existingTransitions.forEach(trans => {
+            const fromNodeId = placeNameToNodeId[trans.fromPlace];
+            const toNodeId = placeNameToNodeId[trans.toPlace];
+            if (fromNodeId && toNodeId) {
+                editor.addConnection(fromNodeId, toNodeId, 'output_1', 'input_1');
+            }
+        });
+
+        function addNodeToEditor(name, label, posX, posY) {
+            nodeCounter++;
+            const nodeId = nodeCounter;
+            const html = `
+                <div class="node-label">${label}</div>
+                <div class="node-name">${name}</div>
+            `;
+            editor.addNode(
+                name,
+                1, 1,
+                posX, posY,
+                name === existingInitialPlace ? 'initial-node' : '',
+                { name: name, label: label },
+                html
+            );
+            return nodeId;
+        }
+
+        // Ajouter une nouvelle étape
+        document.getElementById('addNode').addEventListener('click', () => {
+            const name = 'etape_' + (nodeCounter + 1);
+            const label = 'Nouvelle étape ' + (nodeCounter + 1);
+            addNodeToEditor(name, label, 400, 200);
+        });
+
+        // Sélection d'un node
+        editor.on('nodeSelected', (nodeId) => {
+            selectedNodeId = nodeId;
+            const nodeData = editor.getNodeFromId(nodeId);
+            
+            document.getElementById('nodeProperties').classList.add('hidden');
+            document.getElementById('nodeForm').classList.remove('hidden');
+            document.getElementById('nodeName').value = nodeData.data.name;
+            document.getElementById('nodeLabel').value = nodeData.data.label;
+            document.getElementById('nodeInitial').checked = (initialNodeId == nodeId);
+        });
+
+        editor.on('nodeUnselected', () => {
+            selectedNodeId = null;
+            document.getElementById('nodeProperties').classList.remove('hidden');
+            document.getElementById('nodeForm').classList.add('hidden');
+        });
+
+        // Mettre à jour un node
+        document.getElementById('updateNode').addEventListener('click', () => {
+            if (!selectedNodeId) return;
+            
+            const name = document.getElementById('nodeName').value;
+            const label = document.getElementById('nodeLabel').value;
+            const isInitial = document.getElementById('nodeInitial').checked;
+
+            editor.updateNodeDataFromId(selectedNodeId, { name, label });
+            
+            const nodeElement = document.querySelector(`#node-${selectedNodeId} .drawflow_content_node`);
+            nodeElement.innerHTML = `
+                <div class="node-label">${label}</div>
+                <div class="node-name">${name}</div>
+            `;
+
+            // Gérer l'étape initiale
+            if (isInitial) {
+                // Retirer la classe de l'ancien node initial
+                if (initialNodeId && initialNodeId != selectedNodeId) {
+                    document.querySelector(`#node-${initialNodeId}`)?.classList.remove('initial-node');
+                }
+                initialNodeId = selectedNodeId;
+                document.querySelector(`#node-${selectedNodeId}`).classList.add('initial-node');
+            } else if (initialNodeId == selectedNodeId) {
+                initialNodeId = null;
+                document.querySelector(`#node-${selectedNodeId}`).classList.remove('initial-node');
+            }
+        });
+
+        // Supprimer un node
+        document.getElementById('deleteNode').addEventListener('click', () => {
+            if (!selectedNodeId) return;
+            editor.removeNodeId(`node-${selectedNodeId}`);
+            selectedNodeId = null;
+            document.getElementById('nodeProperties').classList.remove('hidden');
+            document.getElementById('nodeForm').classList.add('hidden');
+        });
+
+        // Sauvegarder
+        document.getElementById('saveWorkflow').addEventListener('click', async () => {
+            const exportData = editor.export();
+            const nodes = [];
+            const connections = [];
+
+            // Extraire les nodes
+            Object.entries(exportData.drawflow.Home.data).forEach(([id, node]) => {
+                nodes.push({
+                    id: id,
+                    name: node.data.name,
+                    label: node.data.label
+                });
+
+                // Extraire les connexions
+                if (node.outputs.output_1?.connections) {
+                    node.outputs.output_1.connections.forEach(conn => {
+                        connections.push({
+                            from: id,
+                            to: conn.node,
+                            name: 'trans_' + id + '_' + conn.node,
+                            label: node.data.label + ' → ' + exportData.drawflow.Home.data[conn.node].data.label
+                        });
+                    });
+                }
+            });
+
+            const payload = {
+                nodes,
+                connections,
+                initialPlace: initialNodeId
+            };
+
+            try {
+                const response = await fetch('{{ path('app_workflow_editor_save', {id: workflow.id}) }}', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                
+                if (response.ok) {
+                    alert('Workflow sauvegardé !');
+                    window.location.href = '{{ path('app_workflow_show', {id: workflow.id}) }}';
+                } else {
+                    alert('Erreur lors de la sauvegarde.');
+                }
+            } catch (error) {
+                alert('Erreur : ' + error.message);
+            }
+        });
+    </script>
+</body>
+</html>

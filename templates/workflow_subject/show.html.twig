@@ -1,0 +1,174 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}{{ subject.title }} - FlowForge{% endblock %}
+
+{% block stylesheets %}
+    {{ parent() }}
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/theme/dracula.min.css">
+{% endblock %}
+
+{% block body %}
+<div class="min-h-screen bg-gray-100 py-8">
+    <div class="max-w-7xl mx-auto px-6 lg:px-8">
+        <div class="mb-8">
+            <a href="{{ path('app_subject_index', {workflowId: workflow.id}) }}" class="text-indigo-600 hover:underline">← Retour aux sujets</a>
+        </div>
+
+        <div class="bg-white rounded-lg shadow p-8 mb-6">
+            <div class="flex justify-between items-start">
+                <div>
+                    <h1 class="text-2xl font-bold text-gray-800">{{ subject.title }}</h1>
+                    <p class="text-gray-500 mt-1">Workflow : {{ workflow.name }}</p>
+                </div>
+                <div class="flex items-center gap-4">
+                    <span class="bg-indigo-100 text-indigo-800 px-3 py-1 rounded-full text-sm font-medium">
+                        {{ subject.currentPlace }}
+                    </span>
+                    <a href="{{ path('app_subject_edit', {workflowId: workflow.id, id: subject.id}) }}"
+                       class="flex items-center gap-2 bg-indigo-600 text-white px-4 py-2 rounded-lg shadow-sm transition hover:bg-indigo-700 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-indigo-400 font-semibold text-sm"
+                       title="Éditer le sujet" data-turbo="false">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                  d="M15.232 5.232l3.536 3.536M9 13l6-6 3 3-6 6H9v-3z"/>
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 21h6v-6H3v6z"/>
+                        </svg>
+                        Éditer
+                    </a>
+                </div>
+            </div>
+
+            <!-- Assignation -->
+            {% if canAssign %}
+            <div class="mt-6 p-4 bg-gray-50 rounded-lg">
+                <form action="{{ path('app_subject_assign', {workflowId: workflow.id, id: subject.id}) }}" method="post" class="flex items-center gap-4">
+                    <input type="hidden" name="_token" value="{{ csrf_token('assign' ~ subject.id) }}">
+                    <label for="user_id" class="text-sm font-medium text-gray-700">👤 Assigné à :</label>
+                    <select name="user_id" id="user_id" class="border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
+                        <option value="">-- Non assigné --</option>
+                        {% for user in users %}
+                            <option value="{{ user.id }}" {% if subject.assignedTo and subject.assignedTo.id == user.id %}selected{% endif %}>
+                                {{ user.firstName }} {{ user.lastName }}
+                            </option>
+                        {% endfor %}
+                    </select>
+                    <button type="submit" class="bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 cursor-pointer">
+                        Assigner
+                    </button>
+                </form>
+            </div>
+            {% else %}
+            <div class="mt-6 p-4 bg-gray-50 rounded-lg">
+                <p class="text-sm text-gray-700">
+                    👤 Assigné à : 
+                    {% if subject.assignedTo %}
+                        <span class="font-medium">{{ subject.assignedTo.firstName }} {{ subject.assignedTo.lastName }}</span>
+                    {% else %}
+                        <span class="italic text-gray-400">Non assigné</span>
+                    {% endif %}
+                </p>
+            </div>
+            {% endif %}
+
+            <!-- Deadline -->
+            <div class="mt-6 p-4 bg-gray-50 rounded-lg">
+                <form action="{{ path('app_subject_deadline', {workflowId: workflow.id, id: subject.id}) }}" method="post" class="flex items-center gap-4">
+                    <input type="hidden" name="_token" value="{{ csrf_token('deadline' ~ subject.id) }}">
+                    <label for="deadline" class="text-sm font-medium text-gray-700">⏰ Deadline :</label>
+                    <input type="datetime-local" name="deadline" id="deadline" 
+                        value="{{ subject.deadline ? subject.deadline|date('Y-m-d\\TH:i') : '' }}"
+                        class="border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
+                    <button type="submit" class="bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 cursor-pointer">
+                        Définir
+                    </button>
+                    {% if subject.deadline %}
+                        {% if subject.deadline < date() %}
+                            <span class="text-red-600 font-medium">⚠️ Dépassée !</span>
+                        {% else %}
+                            <span class="text-green-600">✓ {{ subject.deadline|date('d/m/Y H:i') }}</span>
+                        {% endif %}
+                    {% endif %}
+                </form>
+            </div>
+
+            <!-- Transitions disponibles -->
+            {% if canTransition %}
+                <div class="mt-6 flex gap-2">
+                    {% if availableTransitions is empty %}
+                        <p class="text-gray-500">Aucune transition disponible.</p>
+                    {% else %}
+                        {% for transition in availableTransitions %}
+                            <form action="{{ path('app_subject_apply', {workflowId: workflow.id, id: subject.id}) }}" method="post" class="inline" data-turbo="false">
+                                <input type="hidden" name="_token" value="{{ csrf_token('apply' ~ subject.id) }}">
+                                <input type="hidden" name="transition" value="{{ transition.name }}">
+                                <button type="submit" class="bg-green-500 text-white px-4 py-2 rounded-lg hover:bg-green-600 cursor-pointer">
+                                    {{ transition.label }}
+                                </button>
+                            </form>
+                        {% endfor %}
+                    {% endif %}
+                </div>
+            {% endif %}
+        </div>
+
+        <!-- Données -->
+        {% if subject.data %}
+        <div class="bg-white rounded-lg shadow p-8 mb-6">
+            <h2 class="text-xl font-semibold text-gray-800 mb-4">Données</h2>
+            <textarea id="data-display" class="w-full">{{ subject.data|json_encode(constant('JSON_PRETTY_PRINT')) }}</textarea>
+        </div>
+        {% endif %}
+
+        <!-- Historique -->
+        <div class="bg-white rounded-lg shadow p-8">
+            <h2 class="text-xl font-semibold text-gray-800 mb-4">Historique</h2>
+
+            {% if subject.logs is empty %}
+                <p class="text-gray-500">Aucune transition effectuée.</p>
+            {% else %}
+                <div class="space-y-3">
+                    {% for log in subject.logs|reverse %}
+                        <div class="flex items-center gap-4 p-3 bg-gray-50 rounded-lg">
+                            <div class="text-gray-400 text-sm">
+                                {{ log.createdAt|date('d/m/Y H:i') }}
+                            </div>
+                            <div class="flex-1">
+                                <span class="font-medium text-gray-800">{{ log.transitionName }}</span>
+                                <span class="text-gray-500">:</span>
+                                <span class="text-gray-600">{{ log.fromPlace }}</span>
+                                <span class="text-gray-400">→</span>
+                                <span class="text-gray-600">{{ log.toPlace }}</span>
+                            </div>
+                        </div>
+                    {% endfor %}
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block javascripts %}
+    {{ parent() }}
+    {% if subject.data %}
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/javascript/javascript.min.js"></script>
+    <script>
+        function initCodeMirror() {
+            const textarea = document.getElementById('data-display');
+            if (textarea && !textarea.nextSibling?.classList?.contains('CodeMirror')) {
+                CodeMirror.fromTextArea(textarea, {
+                    mode: 'application/json',
+                    theme: 'dracula',
+                    lineNumbers: true,
+                    lineWrapping: true,
+                    readOnly: true
+                });
+            }
+        }
+        
+        initCodeMirror();
+        document.addEventListener('turbo:load', initCodeMirror);
+    </script>
+    {% endif %}
+{% endblock %}

@@ -1,0 +1,149 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}{{ workflow.name }} - FlowForge{% endblock %}
+
+{% block body %}
+<div class="min-h-screen bg-gray-100 py-8">
+    <div class="max-w-7xl mx-auto px-6 lg:px-8">
+        <div class="mb-8">
+            <a href="{{ path('app_workflow_index') }}" class="text-indigo-600 hover:underline">← Retour</a>
+            <div class="flex flex-col md:flex-row md:items-center md:justify-between mt-2 gap-4">
+                <div>
+                    <h1 class="text-3xl font-bold text-gray-800">{{ workflow.name }}</h1>
+                    {% if workflow.description %}
+                        <p class="text-gray-500 mt-1">{{ workflow.description }}</p>
+                    {% endif %}
+                </div>
+                <div class="flex gap-2 mt-4 md:mt-0">
+                    <a href="{{ path('app_workflow_editor', {id: workflow.id}) }}" class="bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700" data-turbo="false">
+                        🎨 Éditeur visuel
+                    </a>
+                    <a href="{{ path('app_workflow_edit', {id: workflow.id}) }}" class="bg-gray-200 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-300">
+                        Paramètres
+                    </a>
+                    <a href="{{ path('app_subject_index', {workflowId: workflow.id}) }}" class="bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 flex items-center gap-2">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M17 20h5V4H2v16h5m10 0v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4m10 0H7"></path></svg>
+                        Voir les sujets
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <!-- Places -->
+            <div class="bg-white rounded-lg shadow p-6">
+                <div class="flex justify-between items-center mb-4">
+                    <h2 class="text-xl font-semibold text-gray-800">Étapes</h2>
+                    <a href="{{ path('app_place_new', {workflowId: workflow.id}) }}" class="text-indigo-600 hover:underline text-sm">+ Ajouter</a>
+                </div>
+
+                {% if workflow.places is empty %}
+                    <p class="text-gray-500 text-sm">Aucune étape définie.</p>
+                {% else %}
+                    <ul class="space-y-2">
+                        {% for place in workflow.places %}
+                            <li class="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
+                                <div>
+                                    <span class="font-medium text-gray-800">{{ place.label }}</span>
+                                    <span class="text-gray-400 text-sm ml-2">({{ place.name }})</span>
+                                </div>
+                                <form action="{{ path('app_place_delete', {workflowId: workflow.id, id: place.id}) }}" method="post" class="inline" onsubmit="return confirm('Supprimer cette étape ?');">
+                                    <input type="hidden" name="_token" value="{{ csrf_token('delete' ~ place.id) }}">
+                                    <button type="submit" class="text-red-500 hover:underline text-sm">Supprimer</button>
+                                </form>
+                            </li>
+                        {% endfor %}
+                    </ul>
+                {% endif %}
+            </div>
+
+            <!-- Transitions -->
+            <div class="bg-white rounded-lg shadow p-6">
+                <div class="flex justify-between items-center mb-4">
+                    <h2 class="text-xl font-semibold text-gray-800">Transitions</h2>
+                </div>
+
+                {% if workflow.transitions is empty %}
+                    <p class="text-gray-500 text-sm">Aucune transition définie.</p>
+                {% else %}
+                    <ul class="space-y-3">
+                        {% for transition in workflow.transitions %}
+                            <li class="p-3 bg-gray-50 rounded-lg">
+                                <div class="flex justify-between items-center">
+                                    <div>
+                                        <span class="font-medium text-gray-800">{{ transition.label }}</span>
+                                        <span class="text-gray-400 text-sm block">
+                                            {{ transition.fromPlace.label }} → {{ transition.toPlace.label }}
+                                        </span>
+                                        {% if transition.condition %}
+                                            <span class="text-xs text-indigo-600 font-mono">{{ transition.condition }}</span>
+                                        {% endif %}
+                                    </div>
+                                    <form action="{{ path('app_transition_delete', {workflowId: workflow.id, id: transition.id}) }}" method="post" class="inline" onsubmit="return confirm('Supprimer cette transition ?');">
+                                        <input type="hidden" name="_token" value="{{ csrf_token('delete' ~ transition.id) }}">
+                                        <button type="submit" class="text-red-500 hover:underline text-sm">Supprimer</button>
+                                    </form>
+                                </div>
+
+                                <!-- Actions -->
+                                <div class="mt-2 pl-4 border-l-2 border-gray-200">
+                                    <div class="flex justify-between items-center">
+                                        <span class="text-xs text-gray-500">Actions :</span>
+                                        <a href="{{ path('app_action_new', {workflowId: workflow.id, transitionId: transition.id}) }}" class="text-indigo-600 hover:underline text-xs" data-turbo="false">+ Ajouter</a>
+                                    </div>
+                                    {% if transition.actions is empty %}
+                                        <p class="text-gray-400 text-xs mt-1">Aucune action</p>
+                                    {% else %}
+                                        <ul class="mt-1 space-y-1">
+                                            {% for action in transition.actions %}
+                                                <li class="flex justify-between items-center text-xs">
+                                                    <span>
+                                                        <span class="bg-indigo-100 text-indigo-800 px-2 py-0.5 rounded">{{ action.type }}</span>
+                                                        {{ action.name }}
+                                                    </span>
+                                                    <form action="{{ path('app_action_delete', {workflowId: workflow.id, transitionId: transition.id, id: action.id}) }}" method="post" class="inline" onsubmit="return confirm('Supprimer ?');">
+                                                        <input type="hidden" name="_token" value="{{ csrf_token('delete' ~ action.id) }}">
+                                                        <button type="submit" class="text-red-500 hover:underline">×</button>
+                                                    </form>
+                                                </li>
+                                            {% endfor %}
+                                        </ul>
+                                    {% endif %}
+                                </div>
+                            </li>
+                        {% endfor %}
+                    </ul>
+                {% endif %}
+
+                <div class="mt-4">
+                    <a href="{{ path('app_transition_new', {workflowId: workflow.id}) }}" class="text-indigo-600 hover:underline text-sm">+ Ajouter une transition</a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Visualisation -->
+        <div class="mt-6 bg-white rounded-lg shadow p-8">
+            <h2 class="text-xl font-semibold text-gray-800 mb-4">Visualisation</h2>
+            
+            {% if workflow.places|length > 0 %}
+                <div class="mermaid-container w-full flex justify-center items-center">
+                    <pre class="mermaid w-full">
+                        graph LR
+                        {% for place in workflow.places %}
+                        {{ place.name }}["{{ place.label }}"]
+                        {% if place.name == workflow.initialPlace %}
+                        style {{ place.name }} fill:#6366f1,color:#fff
+                        {% endif %}
+                        {% endfor %}
+                        {% for transition in workflow.transitions %}
+                        {{ transition.fromPlace.name }} -->|"{{ transition.label }}"| {{ transition.toPlace.name }}
+                        {% endfor %}
+                    </pre>
+                </div>
+            {% else %}
+                <p class="text-gray-500">Ajoutez des étapes pour voir le diagramme.</p>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

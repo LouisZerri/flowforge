@@ -1,0 +1,57 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Nouvelle transition - {{ workflow.name }} - FlowForge{% endblock %}
+
+{% block body %}
+<div class="min-h-screen bg-gray-100 py-8">
+    <div class="max-w-4xl mx-auto px-6 lg:px-8">
+        <div class="mb-8">
+            <a href="{{ path('app_workflow_show', {id: workflow.id}) }}" class="text-indigo-600 hover:underline">← Retour</a>
+        </div>
+
+        <div class="bg-white rounded-lg shadow p-8">
+            <h1 class="text-2xl font-bold text-gray-800 mb-6">Nouvelle transition</h1>
+            <p class="text-gray-500 mb-6">Workflow : {{ workflow.name }}</p>
+
+            {{ form_start(form, {'attr': {'class': 'space-y-4'}}) }}
+                <div>
+                    {{ form_label(form.name, null, {'label_attr': {'class': 'block text-sm font-medium text-gray-700 mb-1'}}) }}
+                    {{ form_widget(form.name, {'attr': {'class': 'w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500'}}) }}
+                    <div class="text-red-500 text-sm mt-1">{{ form_errors(form.name) }}</div>
+                </div>
+
+                <div>
+                    {{ form_label(form.label, null, {'label_attr': {'class': 'block text-sm font-medium text-gray-700 mb-1'}}) }}
+                    {{ form_widget(form.label, {'attr': {'class': 'w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500'}}) }}
+                    <div class="text-red-500 text-sm mt-1">{{ form_errors(form.name) }}</div>
+                </div>
+
+                <div>
+                    {{ form_label(form.fromPlace, null, {'label_attr': {'class': 'block text-sm font-medium text-gray-700 mb-1'}}) }}
+                    {{ form_widget(form.fromPlace, {'attr': {'class': 'w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500'}}) }}
+                    <div class="text-red-500 text-sm mt-1">{{ form_errors(form.fromPlace) }}</div>
+                </div>
+
+                <div>
+                    {{ form_label(form.toPlace, null, {'label_attr': {'class': 'block text-sm font-medium text-gray-700 mb-1'}}) }}
+                    {{ form_widget(form.toPlace, {'attr': {'class': 'w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500'}}) }}
+                    <div class="text-red-500 text-sm mt-1">{{ form_errors(form.toPlace) }}</div>
+                </div>
+
+                <div>
+                    {{ form_label(form.condition, null, {'label_attr': {'class': 'block text-sm font-medium text-gray-700 mb-1'}}) }}
+                    {{ form_widget(form.condition, {'attr': {'class': 'w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500'}}) }}
+                    <p class="text-gray-500 text-xs mt-1">Ex: data["montant"] > 100</p>
+                    <div class="text-red-500 text-sm mt-1">{{ form_errors(form.condition) }}</div>
+                </div>
+
+                <div class="pt-4">
+                    <button type="submit" class="bg-indigo-600 text-white px-6 py-2 rounded-lg hover:bg-indigo-700 cursor-pointer">
+                        Ajouter la transition
+                    </button>
+                </div>
+            {{ form_end(form) }}
+        </div>
+    </div>
+</div>
+{% endblock %}

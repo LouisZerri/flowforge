@@ -1,0 +1,76 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Nouvelle action - FlowForge{% endblock %}
+
+{% block stylesheets %}
+    {{ parent() }}
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/theme/dracula.min.css">
+{% endblock %}
+
+{% block body %}
+<div class="min-h-screen bg-gray-100 py-8">
+    <div class="max-w-4xl mx-auto px-6 lg:px-8">
+        <div class="mb-8">
+            <a href="{{ path('app_workflow_show', {id: workflowId}) }}" class="text-indigo-600 hover:underline" data-turbo="false">← Retour</a>
+        </div>
+
+        <div class="bg-white rounded-lg shadow p-8">
+            <h1 class="text-2xl font-bold text-gray-800 mb-2">Nouvelle action</h1>
+            <p class="text-gray-500 mb-6">Transition : {{ transition.label }}</p>
+
+            <form method="post" action="{{ path('app_action_new', {workflowId: workflowId, transitionId: transition.id}) }}" class="space-y-4" data-turbo="false">
+                <div>
+                    <label for="name" class="block text-sm font-medium text-gray-700 mb-1">Nom</label>
+                    <input type="text" name="name" id="name" placeholder="Ex: Notifier le manager"
+                        class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
+                </div>
+
+                <div>
+                    <label for="type" class="block text-sm font-medium text-gray-700 mb-1">Type</label>
+                    <select name="type" id="type"
+                        class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
+                        <option value="webhook">Webhook</option>
+                        <option value="email">Email</option>
+                    </select>
+                </div>
+
+                <div>
+                    <label for="config" class="block text-sm font-medium text-gray-700 mb-1">Configuration (JSON)</label>
+                    <textarea name="config" id="config">{}</textarea>
+                    <p class="text-gray-500 text-xs mt-1">
+                        Webhook : {"url": "https://example.com/webhook"}<br>
+                        Email : {"to": "manager@example.com"}
+                    </p>
+                </div>
+
+                <div class="pt-4">
+                    <button type="submit" class="bg-indigo-600 text-white px-6 py-2 rounded-lg hover:bg-indigo-700 cursor-pointer">
+                        Ajouter l'action
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block javascripts %}
+    {{ parent() }}
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/javascript/javascript.min.js"></script>
+    <script>
+        (function() {
+            const textarea = document.getElementById('config');
+            if (textarea) {
+                CodeMirror.fromTextArea(textarea, {
+                    mode: 'application/json',
+                    theme: 'dracula',
+                    lineNumbers: true,
+                    lineWrapping: true,
+                    matchBrackets: true
+                });
+            }
+        })();
+    </script>
+{% endblock %}

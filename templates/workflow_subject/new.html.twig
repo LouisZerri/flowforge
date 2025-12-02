@@ -1,0 +1,32 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Nouveau sujet - {{ workflow.name }} - FlowForge{% endblock %}
+
+{% block body %}
+<div class="min-h-screen bg-gray-100 py-8">
+    <div class="max-w-4xl mx-auto px-6 lg:px-8">
+        <div class="mb-8">
+            <a href="{{ path('app_subject_index', {workflowId: workflow.id}) }}" class="text-indigo-600 hover:underline">← Retour</a>
+        </div>
+
+        <div class="bg-white rounded-lg shadow p-8">
+            <h1 class="text-2xl font-bold text-gray-800 mb-6">Nouveau sujet</h1>
+            <p class="text-gray-500 mb-6">Workflow : {{ workflow.name }}</p>
+
+            <form method="post" class="space-y-4">
+                <div>
+                    <label for="title" class="block text-sm font-medium text-gray-700 mb-1">Titre</label>
+                    <input type="text" name="title" id="title" placeholder="Ex: Commande #1234" 
+                        class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
+                </div>
+
+                <div class="pt-4">
+                    <button type="submit" class="bg-indigo-600 text-white px-6 py-2 rounded-lg hover:bg-indigo-700 cursor-pointer">
+                        Créer le sujet
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,64 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Sujets - {{ workflow.name }} - FlowForge{% endblock %}
+
+{% block body %}
+<div class="min-h-screen bg-gray-100 py-8">
+    <div class="max-w-7xl mx-auto px-6 lg:px-8">
+        <div class="mb-8">
+            <a href="{{ path('app_workflow_show', {id: workflow.id}) }}" class="text-indigo-600 hover:underline">← Retour au workflow</a>
+            <h1 class="text-3xl font-bold text-gray-800 mt-2">Sujets : {{ workflow.name }}</h1>
+        </div>
+
+        <div class="mb-6">
+            <a href="{{ path('app_subject_new', {workflowId: workflow.id}) }}" class="bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700">
+                + Nouveau sujet
+            </a>
+        </div>
+
+        {% if subjects is empty %}
+            <div class="bg-white rounded-lg shadow p-8 text-center text-gray-500">
+                Aucun sujet pour le moment.
+            </div>
+        {% else %}
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {% for subject in subjects %}
+                    <div class="bg-white rounded-lg shadow p-6">
+                        <div class="flex flex-col h-full">
+                            <div class="mb-4">
+                                <a href="{{ path('app_subject_show', {workflowId: workflow.id, id: subject.id}) }}" class="font-semibold text-gray-800 hover:text-indigo-600 text-lg block mb-2" data-turbo="false">{{ subject.title }}</a>
+                                <div class="flex flex-col gap-2">
+                                    <p class="text-sm text-gray-500">
+                                        État : 
+                                        <span class="bg-indigo-100 text-indigo-800 px-2 py-1 rounded text-xs font-medium">
+                                            {{ subject.currentPlace }}
+                                        </span>
+                                    </p>
+                                    <p class="text-sm text-gray-500">
+                                        👤 
+                                        {% if subject.assignedTo %}
+                                            <span class="text-gray-700">{{ subject.assignedTo.firstName }} {{ subject.assignedTo.lastName }}</span>
+                                        {% else %}
+                                            <span class="italic text-gray-400">Non assigné</span>
+                                        {% endif %}
+                                    </p>
+                                </div>
+                            </div>
+                            <div class="flex flex-wrap gap-2 mt-auto">
+                                {% for transition in availableTransitions[subject.id] %}
+                                    <form action="{{ path('app_subject_apply', {workflowId: workflow.id, id: subject.id, transition: transition.name}) }}" method="post" class="inline" data-turbo="false">
+                                        <input type="hidden" name="_token" value="{{ csrf_token('apply' ~ subject.id) }}">
+                                        <button type="submit" class="bg-green-500 text-white px-3 py-1 rounded text-sm hover:bg-green-600 cursor-pointer">
+                                            {{ transition.label }}
+                                        </button>
+                                    </form>
+                                {% endfor %}
+                            </div>
+                        </div>
+                    </div>
+                {% endfor %}
+            </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

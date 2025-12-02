@@ -1,0 +1,72 @@
+services:
+  php:
+    build:
+      context: .
+      dockerfile: docker/php/Dockerfile
+    container_name: flowforge_php
+    volumes:
+      - .:/var/www/html
+    ports:
+      - "8080:80"
+    depends_on:
+      - database
+      - redis
+    environment:
+      - APP_ENV=dev
+
+  scheduler:
+    build:
+      context: .
+      dockerfile: docker/php/Dockerfile
+    container_name: flowforge_scheduler
+    restart: unless-stopped
+    command: php /var/www/html/bin/console messenger:consume scheduler_deadlines -vv
+    volumes:
+      - .:/var/www/html
+    depends_on:
+      - database
+      - php
+    environment:
+      - APP_ENV=dev
+
+  database:
+    image: postgres:16-alpine
+    container_name: flowforge_db
+    environment:
+      POSTGRES_DB: flowforge
+      POSTGRES_USER: flowforge
+      POSTGRES_PASSWORD: flowforge
+    volumes:
+      - db_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+
+  redis:
+    image: redis:7-alpine
+    container_name: flowforge_redis
+    ports:
+      - "6379:6379"
+
+  mailpit:
+    image: axllent/mailpit
+    container_name: flowforge_mail
+    ports:
+      - "8025:8025"
+      - "1025:1025"
+
+  mercure:
+    image: dunglas/mercure
+    container_name: flowforge_mercure
+    restart: unless-stopped
+    environment:
+      SERVER_NAME: ':80'
+      MERCURE_PUBLISHER_JWT_KEY: 'flowforge-mercure-secret-key-change-me'
+      MERCURE_SUBSCRIBER_JWT_KEY: 'flowforge-mercure-secret-key-change-me'
+      MERCURE_EXTRA_DIRECTIVES: |
+        cors_origins http://localhost:8080
+        anonymous
+    ports:
+      - "9090:80"
+
+volumes:
+  db_data:

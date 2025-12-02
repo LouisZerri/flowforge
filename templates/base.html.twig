@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta charset="UTF-8">
+        <title>{% block title %}Welcome!{% endblock %}</title>
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <link rel="icon" type="image/png" href="{{ asset('images/favicon.png') }}">
+        <style>
+            .mermaid-container {
+                min-height: 400px;
+            }
+            .mermaid svg {
+                width: 100% !important;
+                max-width: 100% !important;
+                height: auto !important;
+                min-height: 350px;
+            }
+        </style>
+        {% block stylesheets %}
+            {{ encore_entry_link_tags('app') }}
+        {% endblock %}
+    </head>
+    <body class="bg-gray-100">
+        {% include '_partials/_toasts.html.twig' %}
+        
+        {% if app.user %}
+        <nav class="bg-white shadow">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                <div class="flex justify-between h-16">
+                    <div class="flex items-center">
+                        <a href="{{ path('app_workflow_index') }}" class="flex items-center gap-2">
+                            <img src="{{ asset('images/logo.png') }}" alt="FlowForge" class="h-20">
+                        </a>
+                        <a href="{{ path('app_workflow_index') }}" class="ml-8 text-gray-600 hover:text-gray-900">Workflows</a>
+                    </div>
+                    <div class="flex items-center gap-4">
+                        <span class="text-gray-600">{{ app.user.firstName }} {{ app.user.lastName }}</span>
+                        <a href="{{ path('app_logout') }}" class="text-red-600 hover:text-red-800" title="Déconnexion">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M5.636 5.636a9 9 0 1 0 12.728 0M12 3v9" />
+                            </svg>
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </nav>
+        {% endif %}
+
+        {% block body %}{% endblock %}
+
+        {% block javascripts %}
+            {{ encore_entry_script_tags('app') }}
+        {% endblock %}
+
+        <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+        <script>
+            mermaid.initialize({startOnLoad: true});
+            document.addEventListener('turbo:load', function() {
+                mermaid.run();
+            });
+        </script>
+
+        <!-- Mercure notifications -->
+        <script>
+            document.addEventListener('DOMContentLoaded', function() {
+                // Récupérer le workflow ID depuis l'URL si on est sur une page workflow
+                const pathMatch = window.location.pathname.match(/\/workflow\/(\d+)/);
+                if (!pathMatch) return;
+
+                const workflowId = pathMatch[1];
+                const mercureUrl = new URL('http://localhost:9090/.well-known/mercure');
+                mercureUrl.searchParams.append('topic', 'workflow/' + workflowId);
+
+                const eventSource = new EventSource(mercureUrl.toString());
+
+                eventSource.onmessage = function(event) {
+                    const data = JSON.parse(event.data);
+                    showNotification(data);
+                };
+
+                eventSource.onerror = function(error) {
+                    console.log('Mercure connection error, retrying...');
+                };
+
+                function showNotification(data) {
+                    const container = document.getElementById('toast-container');
+                    if (!container) return;
+
+                    let message = '';
+                    let bgColor = 'bg-blue-500';
+
+                    switch (data.type) {
+                        case 'transition':
+                            message = `🔄 "${data.subjectTitle}" : ${data.fromPlace} → ${data.toPlace}`;
+                            bgColor = 'bg-green-500';
+                            break;
+                        case 'subject_created':
+                            message = `✨ Nouveau sujet : "${data.subjectTitle}"`;
+                            bgColor = 'bg-blue-500';
+                            break;
+                        case 'deadline_alert':
+                            message = `⚠️ Deadline dépassée : "${data.subjectTitle}"`;
+                            bgColor = 'bg-red-500';
+                            break;
+                        default:
+                            message = data.subjectTitle || 'Notification';
+                    }
+
+                    const toast = document.createElement('div');
+                    toast.className = `${bgColor} text-white px-6 py-3 rounded-lg shadow-lg transform transition-all duration-300`;
+                    toast.innerHTML = `
+                        <div class="flex items-center gap-2">
+                            <span>${message}</span>
+                            <button onclick="this.parentElement.parentElement.remove()" class="ml-2 hover:opacity-75">✕</button>
+                        </div>
+                    `;
+
+                    container.appendChild(toast);
+
+                    // Auto-remove après 5 secondes
+                    setTimeout(() => {
+                        toast.style.opacity = '0';
+                        setTimeout(() => toast.remove(), 300);
+                    }, 5000);
+                }
+            });
+        </script>
+    </body>
+</html>

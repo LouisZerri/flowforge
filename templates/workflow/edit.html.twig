@@ -1,0 +1,56 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Éditer {{ workflow.name }} - FlowForge{% endblock %}
+
+{% block body %}
+<div class="min-h-screen bg-gray-100 py-8">
+    <div class="max-w-4xl mx-auto px-6 lg:px-8">
+        <div class="mb-8">
+            <a href="{{ path('app_workflow_index') }}" class="text-indigo-600 hover:underline">← Retour</a>
+        </div>
+
+        <div class="bg-white rounded-lg shadow p-8">
+            <h1 class="text-2xl font-bold text-gray-800 mb-6">Éditer : {{ workflow.name }}</h1>
+
+            {{ form_start(form, {'attr': {'class': 'space-y-4'}}) }}
+                <div>
+                    {{ form_label(form.name, null, {'label_attr': {'class': 'block text-sm font-medium text-gray-700 mb-1'}}) }}
+                    {{ form_widget(form.name, {'attr': {'class': 'w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500'}}) }}
+                    {{ form_errors(form.name) }}
+                </div>
+
+                <div>
+                    {{ form_label(form.description, null, {'label_attr': {'class': 'block text-sm font-medium text-gray-700 mb-1'}}) }}
+                    {{ form_widget(form.description, {'attr': {'class': 'w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500'}}) }}
+                    {{ form_errors(form.description) }}
+                </div>
+
+                {% if workflow.places|length > 0 %}
+                    <div>
+                        {{ form_label(form.initialPlace, null, {'label_attr': {'class': 'block text-sm font-medium text-gray-700 mb-1'}}) }}
+                        {{ form_widget(form.initialPlace, {'attr': {'class': 'w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500'}}) }}
+                        <div class="text-red-500 text-sm mt-1">{{ form_errors(form.initialPlace) }}</div>
+                    </div>  
+                {% endif %}
+
+                <div class="pt-4 flex justify-between items-center">
+                    <button type="submit" class="bg-indigo-600 text-white px-6 py-2 rounded-lg hover:bg-indigo-700 cursor-pointer">
+                        Enregistrer
+                    </button>
+                </div>
+                
+            {{ form_end(form) }}
+        </div>
+
+        <div class="mt-6 bg-white rounded-lg shadow p-8">
+            <h2 class="text-lg font-semibold text-red-600 mb-4">Zone de danger</h2>
+            <form action="{{ path('app_workflow_delete', {id: workflow.id}) }}" method="post" onsubmit="return confirm('Supprimer ce workflow ?');">
+                <input type="hidden" name="_token" value="{{ csrf_token('delete' ~ workflow.id) }}">
+                <button type="submit" class="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 cursor-pointer">
+                    Supprimer ce workflow
+                </button>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
